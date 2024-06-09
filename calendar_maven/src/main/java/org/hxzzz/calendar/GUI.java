@@ -1,4 +1,4 @@
-package calendar;
+package org.hxzzz.calendar;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -6,6 +6,10 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.IOException;
+import java.time.LocalDate;
 
 public class GUI {
     private JTextField idField;
@@ -21,10 +25,11 @@ public class GUI {
     JTable table;
     DefaultTableModel tableModel;
     final String[] columnNames = {"日", "一", "二", "三", "四", "五", "六"};
-
-    public GUI() {
+    Accountings accountings;
+    public GUI(Accountings accountings) {
         //2.构造函数，设置frame的基本属性。
-        frame = new JFrame("calendar");
+        this.accountings = accountings;
+        frame = new JFrame("org/hxzzz/calendar");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setMinimumSize(new java.awt.Dimension(500, 700));
         frame.setResizable(false);
@@ -63,7 +68,14 @@ public class GUI {
         saveButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                saveAccountingEntry();
+                if (day != -1) {
+                    LocalDate date = LocalDate.of(year, month, day);
+                    try {
+                        saveAccountingEntry(date);
+                    } catch (IOException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                }
             }
         });
         accountingPanel.add(saveButton);
@@ -179,14 +191,15 @@ public class GUI {
 
         frame.add(panel1, BorderLayout.NORTH);
     }
-    private void saveAccountingEntry() {
+    private void saveAccountingEntry(LocalDate date) throws IOException {
         int id = Integer.parseInt(idField.getText());
         String type = typeField.getText();
         double expense = Double.parseDouble(expenseField.getText());
         String keywords = keywordsField.getText();
 
-        AccountingEntry entry = new AccountingEntry(id, type, expense, keywords);
+        AccountingEntry entry = new AccountingEntry(id, type, expense, keywords, date);
         // 这里可以添加代码来存储记账条目，例如使用数据库或文件
+        accountings.add(entry);
         System.out.println("保存记账条目: " + entry);
     }
     public void updateLabel(JLabel labelYear, JLabel labelMonth) {
@@ -222,11 +235,28 @@ public class GUI {
         table.setRowSelectionAllowed(false);
         table.setCellSelectionEnabled(true);
         mainPanel.add(new JScrollPane(table), BorderLayout.CENTER);
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                // 获取点击的行和列的索引
+                int row = table.rowAtPoint(e.getPoint());
+                int col = table.columnAtPoint(e.getPoint());
+
+                // 输出点击的单元格的行和列
+                System.out.println("Clicked cell at row " + row + ", column " + col);
+
+                // 获取点击的单元格的值
+                Object value = table.getValueAt(row, col);
+                System.out.println("Value: " + value);
+                if (value == null) {
+                    day = -1;
+                }else {
+                    day = Integer.parseInt(value.toString());
+                }
+            }
+        });
         frame.add(mainPanel, BorderLayout.CENTER);
     }
-
-
-
 }
 class MyTableModel extends DefaultTableModel {
     public MyTableModel(Object[][] data, Object[] columnNames) {
@@ -242,12 +272,12 @@ class CustomTableCellRenderer extends DefaultTableCellRenderer {
     public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
         Component cellComponent = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
-        if (hasFocus) {
-            System.out.println(row + " " + column);
-            //3.如果点击到了该位置，则在控制台输出该位置的行与列。
-            cellComponent.setBackground(UIManager.getColor("Table.selectionBackground"));
+        if (isSelected) {
+            cellComponent.setBackground(table.getSelectionBackground());
+            cellComponent.setForeground(table.getSelectionForeground());
         } else {
             cellComponent.setBackground(table.getBackground());
+            cellComponent.setForeground(table.getForeground());
         }
         return cellComponent;
     }
