@@ -17,9 +17,6 @@ public class Accountings {
         fileSave = new File(filename);
         objectMapper.registerModule(new JavaTimeModule());
         accountings = objectMapper.readValue(fileSave, new TypeReference<List<AccountingEntry>>(){});
-        for (AccountingEntry a: accountings) {
-            System.out.println(a.getType());
-        }
     }
     public void add(AccountingEntry accountingEntry) throws IOException {
         accountings.add(accountingEntry);
@@ -27,5 +24,33 @@ public class Accountings {
     }
     public void save() throws IOException {
         objectMapper.writeValue(fileSave, accountings);
+    }
+    public int getId() {
+        return accountings.size();
+    }
+    public List<AccountingEntry> getAccountingsByMonth(int year, int month) {
+        List<AccountingEntry> result = new ArrayList<>();
+        for (AccountingEntry a: accountings) {
+            if (a.getDate().getYear() == year && a.getDate().getMonthValue() == month) {
+                result.add(a);
+            }
+        }
+        result.sort((a, b) -> a.getDate().compareTo(b.getDate()));
+        return result;
+    }
+    public List<AccountingEntry> getAccountingsByKeyword(String query) {
+       List<AccountingEntry> result = new ArrayList<>();
+        for (AccountingEntry a: accountings) {
+            for (String s: a.getKeywords().split(";")) {
+                if (s.equals(query)) {
+                    result.add(a);
+                }
+            }
+            if (a.getType().equals(query)) {
+                result.add(a);
+            }
+        }
+        result.sort((a, b) -> a.getDate().compareTo(b.getDate()));
+        return result;
     }
 }
